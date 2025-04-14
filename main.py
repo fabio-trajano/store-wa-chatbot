@@ -63,7 +63,7 @@ async def customer_webhook(request: Request):
     try:
         generated_response = process_customer_query(customer_message)
     except Exception as e:
-        generated_response = "Sorry, an error occurred processing your request."
+        generated_response = "Desculpe, ocorreu um erro ao processar o seu pedido."
         print("Error processing customer query:", e)
 
     # Generate a unique ID for this pending approval.
@@ -73,8 +73,8 @@ async def customer_webhook(request: Request):
     add_pending_approval(pending_id, customer_phone, customer_message, generated_response)
 
     # Send the generated response to the approval group for owner review.
-    approval_message = (f"[ID: {pending_id}] Suggested response: {generated_response}\n"
-                        f"Reply 'APPROVE {pending_id}' to approve this message.")
+    approval_message = (f"[ID: {pending_id}] Resposta sugerida: {generated_response}\n"
+                        f"Responda 'APROVAR {pending_id}' para aprovar esta mensagem.")
     send_whatsapp_message(APPROVAL_GROUP_NUMBER, approval_message)
 
     return JSONResponse(content={"status": "pending approval", "id": pending_id})
@@ -83,7 +83,7 @@ async def customer_webhook(request: Request):
 async def approval_webhook(request: Request):
     """
     Webhook for handling messages from the approval group.
-    Expects a message in the format 'APPROVE <pending_id>'.
+    Expects a message in the format 'APROVAR <pending_id>'.
     Once approved, sends the final response to the customer.
     """
     form_data = await request.form()
@@ -93,13 +93,13 @@ async def approval_webhook(request: Request):
     if not group_phone or not group_message:
         raise HTTPException(status_code=400, detail="Missing 'From' or 'Body' in the request")
 
-    # Process only messages starting with "APPROVE"
-    if not group_message.upper().startswith("APPROVE"):
+    # Process only messages starting with "APROVAR"
+    if not group_message.upper().startswith("APROVAR"):
         return JSONResponse(content={"status": "ignored"})
 
     parts = group_message.split()
     if len(parts) < 2:
-        return JSONResponse(content={"status": "invalid format; use 'APPROVE <ID>'"})
+        return JSONResponse(content={"status": "invalid format; use 'APROVAR <ID>'"})
     pending_id = parts[1].strip()
 
     # Retrieve the pending approval record from the database.
@@ -110,9 +110,9 @@ async def approval_webhook(request: Request):
     # Mark the record as approved.
     mark_approved(pending_id)
 
-    # Compose the final message to send to the customer.
+    # Compose the final message to send to the customer in European Portuguese.
     customer_phone = record["customer_phone"]
-    final_message = f"Hello, thank you for reaching out to {STORE_NAME}. {record['generated_response']}"
+    final_message = f"Olá, obrigado por entrar em contacto com a {STORE_NAME}. {record['generated_response']}"
     send_whatsapp_message(customer_phone, final_message)
 
     return JSONResponse(content={"status": "message sent to customer", "id": pending_id})

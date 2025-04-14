@@ -37,11 +37,11 @@ def query_shopify(query: str) -> str:
             if query.lower() in product.get("title", "").lower():
                 # Get the price from the first variant.
                 price = product.get("variants", [{}])[0].get("price", "N/A")
-                return f"Product '{product.get('title')}' is available at ${price}."
-        return "Product not found or out of stock."
+                return f"O produto '{product.get('title')}' está disponível por ${price}."
+        return "Produto não encontrado ou esgotado."
     except Exception as e:
         print("Shopify API error:", e)
-        return "Error retrieving product details from Shopify."
+        return "Erro ao obter os detalhes do produto a partir do Shopify."
 
 def get_faq_response(query: str) -> str:
     """
@@ -97,16 +97,17 @@ def process_customer_query(query: str) -> str:
         shopify_response = query_shopify(query)
 
     # Retrieve FAQ answer based on the customer query.
-    faq_response = (query)
+    faq_response = get_faq_response(query)
 
     # Define a prompt template to combine the information.
+    # The output should be in European Portuguese.
     prompt_template = PromptTemplate(
         input_variables=["query", "shopify_response", "faq_response", "style"],
-        template=("You are a customer support agent for a store. "
-                  "A customer asks: '{query}'.\n"
-                  "Shopify Info: {shopify_response}\n"
-                  "FAQ Info: {faq_response}\n"
-                  "Please answer in a {style} tone with clear and friendly information.")
+        template=("Você é um atendente de suporte ao cliente para uma loja. "
+                  "Um cliente pergunta: '{query}'.\n"
+                  "Informação do Shopify: {shopify_response}\n"
+                  "Informação de FAQ: {faq_response}\n"
+                  "Por favor, responda em português de Portugal com um tom {style}, utilizando uma linguagem clara e amigável.")
     )
 
     chain = LLMChain(llm=llm, prompt=prompt_template)
